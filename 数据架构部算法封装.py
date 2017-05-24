@@ -6,7 +6,11 @@ Created on Tue May 23 10:36:56 2017
 
 名称：分类算法封装
 部门：数据架构部
-基本思想：
+版本：
+基本思想：三个主要功能类
+         1.模型数据准备类
+         2.模型训练类
+         3.结果分析类
 数据要求：分类特征在前，连续性的数值特征在后，最后一个字段为目标列
 数据读取：把excel或者文本文件读取进来，产生包含表头的dataframe数据
          file()
@@ -29,22 +33,40 @@ Created on Tue May 23 10:36:56 2017
          scatter:散点图（目标字段和连续字段,column_name[0]为目标字段，column_name[1]为连续字段）
          stacked:堆积图（目标字段和分类字段,column_name[0]为目标字段，column_name[1]为连续字段）
 特征筛选：
-模型训练：
+
+
+模型训练：逻辑回归、GBDT、KNN算法
+
+         逻辑回归：
 结果分析：
 模型融合：
 """
 
 import pandas as pd
 import numpy as np
-#众数
+######众数
 from scipy.stats import mode
-#预处理
+######预处理
 from sklearn.preprocessing import Imputer,OneHotEncoder,LabelEncoder
 from sklearn.preprocessing.data import MinMaxScaler
-#画图
+######画图
 import matplotlib.pyplot as plt
 plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
 plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
+######算法
+from sklearn import metrics
+#GBDT
+from sklearn.ensemble.gradient_boosting import GradientBoostingClassifier
+#逻辑回归
+from sklearn.linear_model import LogisticRegression
+#朴素贝叶斯
+from sklearn.naive_bayes import GaussianNB
+#k-最近邻
+from sklearn.neighbors import KNeighborsClassifier
+#决策树
+from sklearn.tree import DecisionTreeClassifier
+#支持向量机
+from sklearn.svm import SVC
 
 class file():
     '''
@@ -244,6 +266,48 @@ class file():
         else:
             print('[error]错误的输入')
 
+        
+class model():
+    '''
+    描述：此类用于算法调用
+    Parameters
+    -----------
+    filename : str
+    '''
+    def __init__(self,data=pd.DataFrame(),algorithm_type='LogisticRegression'):
+        self.data,self.algorithm_type = data,algorithm_type
+        self.X = np.asarray(self.data[self.data.columns[:-1]])
+        self.y = np.asarray(self.data[self.data.columns[-1]])
+        self.model='no_train'
+    def algorithm(self):
+        #主要用于分类问题
+#        self.estimator = LogisticRegression(C=1.0, penalty='l1', tol=1e-6)
+#        self.model=self.estimator.fit(self.X,self.y)
+        if self.algorithm_type == 'LogisticRegression': 
+            self.estimator = LogisticRegression(C=1.0, penalty='l1', tol=1e-6)
+            self.model=self.estimator.fit(self.X,self.y)
+        elif self.algorithm_type == 'GradientBoostingClassifier':
+            self.estimator = GradientBoostingClassifier()
+            self.model=self.estimator.fit(self.X,self.y)
+        elif self.algorithm_type == 'KNeighborsClassifier':
+            self.estimator = KNeighborsClassifier()
+            self.model=self.estimator.fit(self.X,self.y)
+        elif self.algorithm_type == 'DecisionTreeClassifier':
+            self.estimator = DecisionTreeClassifier()
+            self.model=self.estimator.fit(self.X,self.y)
+        elif self.algorithm_type == 'SVC':    
+            self.estimator = SVC()
+            self.model=self.estimator.fit(self.X,self.y)
+        #主要用于回归为
+        elif self.algorithm_type == 'GaussianNB':
+            self.estimator = GaussianNB()
+            self.model=self.estimator.fit(self.X,self.y)
+        else:
+            pass
+    def mode(self):
+         pass
+         
+
 #stacked_dict={}
 #for i in list(a.data['学历'].drop_duplicates()):
 #    stacked_dict.update({i:a.data['是否在职'][a.data['学历']==i].value_counts()})
@@ -255,7 +319,7 @@ a.read_data()
 a.deal_null()
 a.check()
 #a.deal_get_dummies()
-
+b=model(a.data)
 
 
 
