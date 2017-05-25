@@ -20,8 +20,8 @@ Created on Tue May 23 10:36:56 2017
          缺失值处理：file.deal_null(self)
          哑变量处理：file.deal_get_dummies(self)
          采样处理：
-         拆分处理：
-         归一化处理：
+         拆分处理：file.split(self,test_size=0.25)
+         归一化处理：file.scaler(self,columns=[],scaler_type='Min-Max')
          类型转换：
          特征编码：
 特征分析：用画图和一些相关性比较来体现
@@ -36,7 +36,6 @@ Created on Tue May 23 10:36:56 2017
 
 
 模型训练：逻辑回归、GBDT、KNN算法
-
          逻辑回归：
 结果分析：
 模型融合：
@@ -48,13 +47,12 @@ import numpy as np
 from scipy.stats import mode
 ######预处理
 from sklearn.preprocessing import Imputer,OneHotEncoder,LabelEncoder
-from sklearn.preprocessing.data import MinMaxScaler
+from sklearn.preprocessing.data import MinMaxScaler,StandardScaler
 ######画图
 import matplotlib.pyplot as plt
 plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
 plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
 ######算法
-from sklearn import metrics
 #GBDT
 from sklearn.ensemble.gradient_boosting import GradientBoostingClassifier
 #逻辑回归
@@ -67,10 +65,16 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 #支持向量机
 from sklearn.svm import SVC
+#随机森林
+from sklearn.ensemble import RandomForestRegressor
+#算法评估
+from sklearn.metrics import roc_curve, auc, precision_recall_curve,accuracy_score,precision_score,recall_score
+######交叉验证
+from sklearn.cross_validation import train_test_split
 
 class file():
     '''
-    描述：此类用于记录文件属性并读取数据和检查数据
+    描述：此类用于记录文件属性并读取数据、检查数据、数据预处理操作等
     Parameters
     -----------
     filename : str
@@ -122,6 +126,9 @@ class file():
     ######################数据读取#######################
     #读取文件数据
     def read_data(self):
+        '''
+        读取数据
+        '''
         #获取文件类型
         file_type = lambda x : x[x.rindex('.')+1:]
         #表格文件
@@ -144,6 +151,11 @@ class file():
     #a.check()   #检查dataframe数据对象
     #a.check(['刷新简历次数','是否在职'])   #检查字段信息
     def check(self,column_name=[]):
+        '''
+        检查dataframe对象信息或者检查某个字段信息
+        file.check()   #检查dataframe数据对象
+        file.check(['刷新简历次数','是否在职'])   #检查字段信息
+        '''
         if column_name==[]:
             print('*******************head*********************')
             print(self.data.head())
@@ -161,6 +173,9 @@ class file():
             
     #检查相关系数,其中以column_base为基数，column_corr的相关性
     def check_corr(self,column_base=None,column_corr=None):
+        '''
+        检查相关系数,其中以column_base为基数，column_corr的相关性
+        '''
         if column_corr==None and column_base==None:
             print('[error]please input column_base!')
         elif column_corr==None:
@@ -179,6 +194,10 @@ class file():
     # 对于连续型特征，分别用中位数、均值、和众数填充缺失值
     # 对所有分类特征，分别用'缺失'、-1、和-1.0填充缺失值
     def deal_null(self):
+        '''
+        对于连续型特征，分别用中位数、均值、和众数填充缺失值
+        对所有分类特征，分别用'缺失'、-1、和-1.0填充缺失值
+        '''
         for column in self.data[0:self.n_classify]:
             if self.data.dtypes[column] == 'int64':
                 self.data.fillna(-1, inplace=True) # 对整型值用中位数
@@ -204,6 +223,9 @@ class file():
     
     #对分类字段做标签化处理                
     def deal_label(self):
+        '''
+        对分类字段做标签化处理   
+        '''
         le = LabelEncoder()
         for i in range(self.n_classify):
             self.data[[i]]=le.fit_transform(self.data[[i]])
@@ -216,11 +238,41 @@ class file():
 #            t_data=enc.fit(alldata[:,0:self.files[tablename].N_OHE])
             
     def deal_get_dummies(self):
+        '''
+        对分类字段做哑变量处理
+        '''
         r_data = pd.DataFrame()
         l_data = self.data[self.data.columns[self.n_classify:]]
         for column in self.data.columns[:self.n_classify]:
             r_data = pd.concat([r_data,pd.get_dummies(self.data[[column]], prefix = column)],axis=1)
         self.data = pd.concat([r_data,l_data],axis=1)
+        
+    #数据拆分
+    #将数据集按比例切分，默认切分比例为3:1
+    def split(self,test_size=0.25):
+        '''
+        描述：对数据集做切分处理，默认切分比例为0.25即3:1
+        Parameters
+        -----------
+        test_size : float64
+            值范围：[0,1)
+        '''
+        self.train,self.test = train_test_split(self.data,test_size=test_size)
+
+    #归一化处理
+    #线性函数归一化(Min-Max scaling):线性函数将原始数据线性化的方法转换到[0 1]的范围
+    #0均值标准化(Z-score standardization):0均值归一化方法将原始数据集归一化为均值为0、方差1的数据集
+    def scaler(self,columns=[],scaler_type='Min-Max'):
+        '''
+        线性函数归一化(Min-Max scaling):线性函数将原始数据线性化的方法转换到[0 1]的范围
+        0均值标准化(Z-score standardization):0均值归一化方法将原始数据集归一化为均值为0、方差1的数据集
+        '''
+        if scaler_type == 'Min-Max':
+            Scaler = MinMaxScaler()
+            self.data[columns] = Scaler.fit_transform(self.data[columns])
+        else:
+            Scaler = StandardScaler()
+            self.data[columns] = Scaler.fit_transform(self.data[columns])
      ######################数据预处理####################### 
       
      ######################特征分析####################### 
@@ -231,6 +283,19 @@ class file():
      #scatter:散点图（目标字段和连续字段）
      #stacked:柱状堆积图（目标字段和根据目标字段分类统计某一分类字段）
     def __Column_Plot__(self,column_name=None,kind='bar'):  
+        '''
+        描述：画图
+        Parameters
+        -----------
+        column_name : list
+                      用于展示的字段值
+        kind ： str
+                指定画图类型
+                bar:柱状图（单值分类字段）
+                kde:密度曲线（单值连续字段）
+                scatter:散点图（目标字段和连续字段）
+                stacked:柱状堆积图（目标字段和根据目标字段分类统计某一分类字段）
+        '''
         if column_name==None:
             print('[error]请输入要分析的字段')
         #####一个字段的分布情况
@@ -265,49 +330,113 @@ class file():
             plt.title(column_name[1]+'_'+column_name[0]+'堆积图')
         else:
             print('[error]错误的输入')
+    
 
-        
+    ######################特征分析#######################
+
+    
 class model():
     '''
     描述：此类用于算法调用
     Parameters
     -----------
-    filename : str
+    data : dataframe
+        传递的数据必须都为数值类型（float或者int），最后一列为目标列
+    algorithm_type ：str
+        算法选择：
+        逻辑回归：LogisticRegression
+        梯度渐进分类树：GradientBoostingClassifier
+        K-最近邻：KNeighborsClassifier
+        决策树：DecisionTreeClassifier
+        向量机：SVC
+        朴素贝叶斯：GaussianNB
+        随机森林：RandomForestRegressor
     '''
     def __init__(self,data=pd.DataFrame(),algorithm_type='LogisticRegression'):
         self.data,self.algorithm_type = data,algorithm_type
         self.X = np.asarray(self.data[self.data.columns[:-1]])
         self.y = np.asarray(self.data[self.data.columns[-1]])
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y)
+       
         self.model='no_train'
-    def algorithm(self):
-        #主要用于分类问题
-#        self.estimator = LogisticRegression(C=1.0, penalty='l1', tol=1e-6)
-#        self.model=self.estimator.fit(self.X,self.y)
+        
+
+    ######################模型训练#######################
+    def algorithm(self,**kw):
+        '''
+        描述：用指定算法训练模型
+        
+        '''
+        
+    # 大多数情况下被用来解决分类问题（二元分类），但多类的分类（所谓的一对多方法）也适用。
+    # 这个算法的优点是对于每一个输出的对象都有一个对应类别的概率。
         if self.algorithm_type == 'LogisticRegression': 
-            self.estimator = LogisticRegression(C=1.0, penalty='l1', tol=1e-6)
-            self.model=self.estimator.fit(self.X,self.y)
+            self.estimator = LogisticRegression(**kw)
+            self.model = self.estimator.fit(self.X,self.y)
+    # GBDT是一个应用很广泛的算法，可以用来做分类、回归
         elif self.algorithm_type == 'GradientBoostingClassifier':
-            self.estimator = GradientBoostingClassifier()
-            self.model=self.estimator.fit(self.X,self.y)
+            self.estimator = GradientBoostingClassifier(**wk)
+            self.model = self.estimator.fit(self.X,self.y)
+    # kNN（k-最近邻）方法通常用于一个更复杂分类算法的一部分。
+    # 例如，我们可以用它的估计值做为一个对象的特征。
+    # 有时候，一个简单的kNN算法在良好选择的特征上会有很出色的表现。
+    # 当参数（主要是metrics）被设置得当，这个算法在回归问题中通常表现出最好的质量      
         elif self.algorithm_type == 'KNeighborsClassifier':
-            self.estimator = KNeighborsClassifier()
-            self.model=self.estimator.fit(self.X,self.y)
+            self.estimator = KNeighborsClassifier(**wk)
+            self.model = self.estimator.fit(self.X,self.y)
+    # 分类和回归树（CART）经常被用于这么一类问题，在这类问题中对象有可分类的特征且被用于回归和分类问题。
+    # 决策树很适用于多类分类
         elif self.algorithm_type == 'DecisionTreeClassifier':
-            self.estimator = DecisionTreeClassifier()
-            self.model=self.estimator.fit(self.X,self.y)
+            self.estimator = DecisionTreeClassifier(**wk)
+            self.model = self.estimator.fit(self.X,self.y)
+    # SVM（支持向量机）是最流行的机器学习算法之一，它主要用于分类问题。
+    # 同样也用于逻辑回归，SVM在一对多方法的帮助下可以实现多类分类。
         elif self.algorithm_type == 'SVC':    
-            self.estimator = SVC()
+            self.estimator = SVC(**wk)
             self.model=self.estimator.fit(self.X,self.y)
-        #主要用于回归为
+    # 它也是最有名的机器学习的算法之一，它的主要任务是恢复训练样本的数据分布密度。
+    # 这个方法通常在多类的分类问题上表现的很好。
         elif self.algorithm_type == 'GaussianNB':
-            self.estimator = GaussianNB()
-            self.model=self.estimator.fit(self.X,self.y)
+            self.estimator = GaussianNB(**wk)
+            self.model = self.estimator.fit(self.X,self.y)
+    # 在数据集上表现良好
+    # 在当前的很多数据集上，相对其他算法有着很大的优势
+    # 它能够处理很高维度（feature很多）的数据，并且不用做特征选择
+    # 在训练完后，它能够给出哪些feature比较重要
+    # 在创建随机森林的时候，对generlization error使用的是无偏估计
+    # 训练速度快
+    # 在训练过程中，能够检测到feature间的互相影响
+    # 容易做成并行化方法
+    # 实现比较简单
+        elif self.algorithm_type == 'RandomForestRegressor':
+            self.estimator = RandomForestRegressor(**wk)
+            self.model = self.estimator.fit(self.X,self.y)
         else:
             pass
-    def mode(self):
-         pass
-         
-
+    
+    ######################模型训练#######################
+    
+    ######################数据输出#######################
+    # 预测数据输出
+    # 用类中训练好的模型去预测数据,数据必须经过相同处理
+    def predict(self,data):
+        '''
+        描述：用训练好的模型预测
+        '''
+        self.predict_result = self.model.predict(data)
+    # 输出预测概率，针对有预测概率输出的模型
+    def proba(self):
+        '''
+        描述：训练好的模型预测得出概率分布，针对可以输出概率分布的模型
+        '''
+        self.proba = self.model.predict_proba(data)
+    
+    ######################数据输出#######################
+    
+    ######################模型评估#######################
+    
+    
+    ######################模型评估#######################
 #stacked_dict={}
 #for i in list(a.data['学历'].drop_duplicates()):
 #    stacked_dict.update({i:a.data['是否在职'][a.data['学历']==i].value_counts()})
@@ -318,10 +447,11 @@ a = file("d:\\248948\\Desktop\\模型算法\\算法封装\\9月.xlsx",sheet_name
 a.read_data()
 a.deal_null()
 a.check()
-#a.deal_get_dummies()
-b=model(a.data)
-
-
+a.deal_get_dummies()
+s=['绩效得分', '补考勤次数', '请假次数', '请假天数', '打卡心情', '打卡时长', '上班时间', '加班天数', '异动次数',
+'认证次数', '储备次数', '交通费', '收入证明开具次数', '晋升次数', '投递简历网站个数', '刷新简历次数',
+'工龄（月）']
+a.scaler(s)
 
 #a.deal_label()
 #a.check_corr(column_base='是否在职')
