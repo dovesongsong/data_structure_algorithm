@@ -46,7 +46,7 @@ import numpy as np
 ######众数
 from scipy.stats import mode
 ######预处理
-from sklearn.preprocessing import Imputer,OneHotEncoder,LabelEncoder
+from sklearn.preprocessing import Imputer,OneHotEncoder,LabelEncoder,binarize
 from sklearn.preprocessing.data import MinMaxScaler,StandardScaler
 ######画图
 import matplotlib.pyplot as plt
@@ -68,7 +68,7 @@ from sklearn.svm import SVC
 #随机森林
 from sklearn.ensemble import RandomForestRegressor
 #算法评估
-from sklearn.metrics import roc_curve, auc, precision_recall_curve,accuracy_score,precision_score,recall_score
+from sklearn.metrics import roc_curve, auc, precision_recall_curve,accuracy_score,precision_score,recall_score,classification_report,confusion_matrix
 ######交叉验证
 from sklearn.cross_validation import train_test_split
 
@@ -356,11 +356,23 @@ class model():
         self.data,self.algorithm_type = data,algorithm_type
         self.X = np.asarray(self.data[self.data.columns[:-1]])
         self.y = np.asarray(self.data[self.data.columns[-1]])
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y)
+        
        
         self.model='no_train'
         
-
+    #数据拆分
+    #将数据集按比例切分，默认切分比例为3:1
+    def split(self,test_size=0.25):
+        '''
+        描述：对数据集做切分处理，默认切分比例为0.25即3:1
+        Parameters
+        -----------
+        test_size : float64
+            值范围：[0,1)
+        '''
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y,test_size=test_size)
+        
+        
     ######################模型训练#######################
     def algorithm(self,**kw):
         '''
@@ -419,30 +431,53 @@ class model():
     ######################数据输出#######################
     # 预测数据输出
     # 用类中训练好的模型去预测数据,数据必须经过相同处理
-    def predict(self,data):
+    def predict(self,data_X,data_y):
         '''
         描述：用训练好的模型预测
         '''
-        self.predict_result = self.model.predict(data)
+        self.predict_result = self.model.predict(data_X)
+        # summarize the fit of the model
+        print(classification_report(data_y, self.predict_result))
+        print(confusion_matrix(data_y, self.predict_result))
+        
+        
     # 输出预测概率，针对有预测概率输出的模型
-    def proba(self):
+    def proba(self,data_X):
         '''
         描述：训练好的模型预测得出概率分布，针对可以输出概率分布的模型
         '''
-        self.proba = self.model.predict_proba(data)
-    
+        self.proba = self.model.predict_proba(data_X)
+        
+    def threshold(self,data_X,data_y,l_precision=0.50,m_recall=0.70):
+        '''
+        描述：做阈值
+        '''
+        self.proba(data_X)
+        max_values=0
+        th=0
+        precision,recall,thresholds = precision_recall_curve(data_y, self.proba[:,1])
+        for (l,m,n) in zip(precision,recall,np.insert(thresholds,0,values=0)):
+            print((l,m,n))
+            if  (l > 0.50 or m > 0.70) and m*l > max_values:
+                max_values = m*l
+                th = n
+        if max == 0:
+            print("error")
+        else:
+            pred = binarize(self.proba[:,1],threshold=th).reshape((self.proba[:,1].size,))
+            print('Threshold : ', th)
+            print(classification_report(data_y, pred))
+            print(confusion_matrix(data_y, pred))
     ######################数据输出#######################
     
     ######################模型评估#######################
     
     
     ######################模型评估#######################
-#stacked_dict={}
-#for i in list(a.data['学历'].drop_duplicates()):
-#    stacked_dict.update({i:a.data['是否在职'][a.data['学历']==i].value_counts()})
-#
-#pd.DataFrame(stacked_dict).plot(kind='bar', stacked=True)    
 
+    
+    
+#数据读取和预处理
 a = file("d:\\248948\\Desktop\\模型算法\\算法封装\\9月.xlsx",sheet_name='数据验证',n_classify=12)
 a.read_data()
 a.deal_null()
@@ -452,6 +487,12 @@ s=['绩效得分', '补考勤次数', '请假次数', '请假天数', '打卡心
 '认证次数', '储备次数', '交通费', '收入证明开具次数', '晋升次数', '投递简历网站个数', '刷新简历次数',
 '工龄（月）']
 a.scaler(s)
+#模型训练
+b = model(a.data)
+b.algorithm()
+b.split()
+b.predict(b.X_test,b.y_test)
+b.proba
 
 #a.deal_label()
 #a.check_corr(column_base='是否在职')
