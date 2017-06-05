@@ -2,10 +2,10 @@
 """
 Created on Tue May 23 10:36:56 2017
 
-@author: 248948
+@author: xx
 
 名称：分类算法封装
-部门：数据架构部
+部门：xx
 版本：
 基本思想：三个主要功能类
          1.模型数据准备类
@@ -105,21 +105,21 @@ class file():
 
     #举例
     #有表头表格文件
-    a = file("d:\\248948\\Desktop\\模型算法\\算法封装\\9月.xlsx",sheet_name='数据验证')
+    a = file("xx.xlsx",sheet_name='xx')
     a.read_data()
     
     #有表头文本文件
-    b = file("d:\\248948\\Desktop\\模型算法\\算法封装\\9月.txt",sep='  ')
+    b = file("xx.txt",sep='  ')
     b.read_data()
     
     #无表头表格文件
-    columns = ['性别','学历','岗位等级','离职暂存','是否有配偶','配偶是否在公司','籍贯省份','籍贯城市','序列','社保所在地','16年是否迁移社保','绩效得分','补考勤次数','请假次数','请假天数','打卡心情','打卡时长','上班时间','加班天数','异动次数','认证次数','储备次数','交通费','收入证明开具次数','晋升次数','投递简历网站个数','刷新简历次数','工龄（月）','是否在职']
-    c = file(filename="d:\\248948\\Desktop\\模型算法\\算法封装\\9月v1.xlsx",sheet_name='数据验证',header=None,columns=columns)
+    columns = ['xx','xxx']
+    c = file(filename="xx.xlsx",sheet_name='xx',header=None,columns=columns)
     c.read_data()
     
     #无表头文本文件
-    columns = ['性别','学历','岗位等级','离职暂存','是否有配偶','配偶是否在公司','籍贯省份','籍贯城市','序列','社保所在地','16年是否迁移社保','绩效得分','补考勤次数','请假次数','请假天数','打卡心情','打卡时长','上班时间','加班天数','异动次数','认证次数','储备次数','交通费','收入证明开具次数','晋升次数','投递简历网站个数','刷新简历次数','工龄（月）','是否在职']
-    d = file(filename="d:\\248948\\Desktop\\模型算法\\算法封装\\9月v1.txt",sep='  ',header=None,columns=columns)
+    columns = ['xx','xxx']
+    d = file(filename="xx.txt",sep='  ',header=None,columns=columns)
     d.read_data()
 
      
@@ -595,20 +595,4 @@ class model():
     ######################模型评估#######################
 
     
-##数据读取和预处理
-#a = file("d:\\248948\\Desktop\\模型算法\\算法封装\\9月.xlsx",sheet_name='数据验证',n_classify=12)
-#a.read_data()
-#a.deal_null()
-#a.check()
-#a.deal_get_dummies()
-#s=['绩效得分', '补考勤次数', '请假次数', '请假天数', '打卡心情', '打卡时长', '上班时间', '加班天数', '异动次数',
-#'认证次数', '储备次数', '交通费', '收入证明开具次数', '晋升次数', '投递简历网站个数', '刷新简历次数',
-#'工龄（月）']
-#a.scaler(s)
-##模型训练
-#b = model(a.data)
-#b.algorithm()
-#b.split()
-#b.cross_validation()
-
 
